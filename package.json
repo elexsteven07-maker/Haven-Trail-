@@ -1,0 +1,11 @@
+{
+  "name": "staybook-project",
+  "version": "1.0.0",
+  "description": "Complete Hotel Booking Platform",
+  "scripts": {
+    "frontend": "cd frontend && npm start",
+    "backend": "cd backend && npm run dev",
+    "install-all": "cd backend && npm install && cd ../frontend && npm install",
+    "start": "concurrently 'npm run backend' 'npm run frontend'"
+  }
+}
