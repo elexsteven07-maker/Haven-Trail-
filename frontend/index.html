@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StayBook - Hotel & Room Booking</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://js.stripe.com/v3/"></script>
+    <script async src="https://pay.google.com/gp/p/js/pay.js"></script>
+</head>
+<body>
+    <!-- Auth Modal -->
+    <div id="authModal" class="modal">
+        <div class="modal-content auth-modal">
+            <span class="close" onclick="closeAuthModal()">&times;</span>
+            <div class="auth-container">
+                <div id="loginTab" class="auth-tab active">
+                    <h2>Welcome Back</h2>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="loginEmail" placeholder="Enter your email">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="loginPassword" placeholder="Enter your password">
+                    </div>
+                    <button class="btn-primary" onclick="loginUser()">Login</button>
+                    <p class="auth-toggle">Don't have an account? <a href="#" onclick="switchToSignup(event)">Sign Up</a></p>
+                </div>
+
+                <div id="signupTab" class="auth-tab">
+                    <h2>Create Account</h2>
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="signupFullName" placeholder="Enter your full name">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="signupEmail" placeholder="Enter your email">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" id="signupPhone" placeholder="Enter your phone number">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="signupPassword" placeholder="Create a password (min 6 chars)">
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm Password</label>
+                        <input type="password" id="signupConfirmPassword" placeholder="Confirm your password">
+                    </div>
+                    <button class="btn-primary" onclick="signupUser()">Create Account</button>
+                    <p class="auth-toggle">Already have an account? <a href="#" onclick="switchToLogin(event)">Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">🏨 StayBook</div>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#hotels">Hotels</a></li>
+                <li><a href="#bookings">My Bookings</a></li>
+                <li><a href="#contact">Contact</a></li>
+                <li id="userMenuContainer" style="display: none;">
+                    <div class="user-menu">
+                        <span id="userGreeting">User</span>
+                        <div class="dropdown-menu">
+                            <a href="#" onclick="viewProfile(event)">My Profile</a>
+                            <a href="#" onclick="logout(event)">Logout</a>
+                        </div>
+                    </div>
+                </li>
+                <li id="authButtonContainer">
+                    <button class="btn-auth" onclick="openAuthModal()">Login / Sign Up</button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <h1>Find Your Perfect Stay</h1>
+            <p>Book hotels and daily rental rooms with ease and security</p>
+        </div>
+    </section>
+
+    <!-- Search Section -->
+    <section class="search-section">
+        <div class="container">
+            <div class="search-box">
+                <div class="search-item">
+                    <label>Location</label>
+                    <input type="text" id="searchLocation" placeholder="Enter city or address">
+                </div>
+                <div class="search-item">
+                    <label>Check-in Date</label>
+                    <input type="date" id="checkInDate">
+                </div>
+                <div class="search-item">
+                    <label>Check-out Date</label>
+                    <input type="date" id="checkOutDate">
+                </div>
+                <div class="search-item">
+                    <label>Guests</label>
+                    <select id="guestCount">
+                        <option value="1">1 Guest</option>
+                        <option value="2">2 Guests</option>
+                        <option value="3">3 Guests</option>
+                        <option value="4">4 Guests</option>
+                        <option value="5">5+ Guests</option>
+                    </select>
+                </div>
+                <button class="search-btn" onclick="searchHotels()">Search</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Hotels Listing Section -->
+    <section class="hotels-section" id="hotels">
+        <div class="container">
+            <h2>Available Hotels & Rooms</h2>
+            <div class="filters">
+                <select id="priceFilter" onchange="filterHotels()">
+                    <option value="">All Prices</option>
+                    <option value="budget">Budget (Under $50)</option>
+                    <option value="mid">Mid-range ($50-$150)</option>
+                    <option value="luxury">Luxury ($150+)</option>
+                </select>
+                <select id="typeFilter" onchange="filterHotels()">
+                    <option value="">All Types</option>
+                    <option value="hotel">Hotel</option>
+                    <option value="apartment">Apartment</option>
+                    <option value="villa">Villa</option>
+                </select>
+                <select id="ratingFilter" onchange="filterHotels()">
+                    <option value="">All Ratings</option>
+                    <option value="5">5 Stars</option>
+                    <option value="4">4+ Stars</option>
+                    <option value="3">3+ Stars</option>
+                </select>
+            </div>
+            <div class="hotels-grid" id="hotelsGrid"></div>
+        </div>
+    </section>
+
+    <!-- Hotel Details & Reviews Modal -->
+    <div id="hotelDetailsModal" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close" onclick="closeHotelDetailsModal()">&times;</span>
+            <div class="hotel-details-container">
+                <div class="hotel-details-header">
+                    <h2 id="detailsHotelName"></h2>
+                    <div id="detailsRating" class="rating-display"></div>
+                </div>
+                
+                <div class="hotel-details-content">
+                    <div class="details-left">
+                        <div id="detailsLocation"></div>
+                        <div id="detailsDescription"></div>
+                        <div id="detailsAmenities"></div>
+                    </div>
+                    <div class="details-right">
+                        <div id="detailsRooms"></div>
+                    </div>
+                </div>
+
+                <div class="reviews-section">
+                    <h3>Guest Reviews</h3>
+                    <div id="reviewsList" class="reviews-list"></div>
+                    
+                    <div id="addReviewSection" class="add-review-section" style="display: none;">
+                        <h4>Leave a Review</h4>
+                        <div class="form-group">
+                            <label>Rating</label>
+                            <div class="star-rating">
+                                <span class="star" data-value="1">★</span>
+                                <span class="star" data-value="2">★</span>
+                                <span class="star" data-value="3">★</span>
+                                <span class="star" data-value="4">★</span>
+                                <span class="star" data-value="5">★</span>
+                            </div>
+                            <input type="hidden" id="reviewRating" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Title</label>
+                            <input type="text" id="reviewTitle" placeholder="Review title">
+                        </div>
+                        <div class="form-group">
+                            <label>Review</label>
+                            <textarea id="reviewComment" placeholder="Share your experience..."></textarea>
+                        </div>
+                        <button class="btn-primary" onclick="submitReview()">Submit Review</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div id="bookingModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeBookingModal()">&times;</span>
+            <h2>Book Your Room</h2>
+            <div class="booking-form">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="fullName" placeholder="Enter your full name">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="email" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="phone" placeholder="Enter your phone number">
+                </div>
+                <div class="form-group">
+                    <label>Check-in Date</label>
+                    <input type="date" id="bookingCheckIn">
+                </div>
+                <div class="form-group">
+                    <label>Check-out Date</label>
+                    <input type="date" id="bookingCheckOut">
+                </div>
+                <div class="form-group">
+                    <label>Number of Guests</label>
+                    <input type="number" id="bookingGuests" min="1" max="10" value="1">
+                </div>
+                <div class="form-group">
+                    <label>Special Requests</label>
+                    <textarea id="specialRequests" placeholder="Any special requests?"></textarea>
+                </div>
+                <div class="price-summary">
+                    <p>Total Price: <span id="totalPrice">$0</span></p>
+                </div>
+                <button class="btn-primary" onclick="proceedToPayment()">Proceed to Payment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closePaymentModal()">&times;</span>
+            <h2>Secure Payment</h2>
+            
+            <div class="payment-tabs">
+                <button class="payment-tab active" onclick="switchPaymentMethod('card')">💳 Card</button>
+                <button class="payment-tab" onclick="switchPaymentMethod('stripe')">Stripe</button>
+                <button class="payment-tab" onclick="switchPaymentMethod('googlepay')">Google Pay</button>
+                <button class="payment-tab" onclick="switchPaymentMethod('applepay')">Apple Pay</button>
+                <button class="payment-tab" onclick="switchPaymentMethod('bml')">BML</button>
+                <button class="payment-tab" onclick="switchPaymentMethod('sib')">SIB</button>
+            </div>
+
+            <div id="cardMethod" class="payment-method active">
+                <h3>Credit/Debit Card</h3>
+                <div class="form-group">
+                    <label>Card Holder Name</label>
+                    <input type="text" id="cardName" placeholder="Enter name on card">
+                </div>
+                <div class="form-group">
+                    <label>Card Number</label>
+                    <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Expiry Date</label>
+                        <input type="text" id="expiryDate" placeholder="MM/YY" maxlength="5">
+                    </div>
+                    <div class="form-group">
+                        <label>CVV</label>
+                        <input type="text" id="cvv" placeholder="123" maxlength="3">
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="processCardPayment()">Pay Now</button>
+            </div>
+
+            <div id="stripeMethod" class="payment-method">
+                <h3>Pay with Stripe</h3>
+                <div id="card-element"></div>
+                <button class="btn-primary" onclick="processStripePayment()">Pay with Stripe</button>
+            </div>
+
+            <div id="googlepayMethod" class="payment-method">
+                <h3>Google Pay</h3>
+                <div id="google-pay-button"></div>
+            </div>
+
+            <div id="applepayMethod" class="payment-method">
+                <h3>Apple Pay</h3>
+                <button class="btn-primary" onclick="processApplePayment()">Pay with Apple Pay</button>
+            </div>
+
+            <div id="bmlMethod" class="payment-method">
+                <h3>BML (Bank of Maldives)</h3>
+                <p>You will be redirected to BML payment gateway.</p>
+                <div class="form-group">
+                    <label>Account Number</label>
+                    <input type="text" id="bmlAccount" placeholder="Enter your BML account number">
+                </div>
+                <button class="btn-primary" onclick="processBMLPayment()">Pay with BML</button>
+            </div>
+
+            <div id="sibMethod" class="payment-method">
+                <h3>SIB (State Bank of India)</h3>
+                <p>You will be redirected to SIB payment gateway.</p>
+                <div class="form-group">
+                    <label>Account Number</label>
+                    <input type="text" id="sibAccount" placeholder="Enter your SIB account number">
+                </div>
+                <button class="btn-primary" onclick="processSIBPayment()">Pay with SIB</button>
+            </div>
+
+            <div class="security-notice">
+                <p>🔒 Your payment is secure and encrypted</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Bookings Section -->
+    <section class="bookings-section" id="bookings">
+        <div class="container">
+            <h2>My Bookings</h2>
+            <div class="bookings-list" id="bookingsList">
+                <p>No bookings yet. Start by searching for hotels!</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="contact-section" id="contact">
+        <div class="container">
+            <h2>Contact Us</h2>
+            <div class="contact-form">
+                <input type="text" placeholder="Your Name" id="contactName">
+                <input type="email" placeholder="Your Email" id="contactEmail">
+                <textarea placeholder="Your Message" rows="5" id="contactMessage"></textarea>
+                <button class="btn-primary" onclick="sendMessage()">Send Message</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 StayBook. All rights reserved. Secure booking platform.</p>
+            <p>Safe. Secure. Simple.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
